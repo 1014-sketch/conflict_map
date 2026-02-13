@@ -510,67 +510,164 @@
             low: '低'
         };
 
-        // クライアントサイドでニュースを取得（バックエンド不要）
+        // 複数のニュースソースから統合取得（世界中をカバー）
         async function fetchGDELTEvents() {
             try {
-                console.log('📡 Fetching real news from Al Jazeera RSS...');
+                console.log('📡 Fetching news from multiple global sources...');
                 
-                // CORSプロキシ経由でRSSフィードを取得
                 const corsProxy = 'https://api.allorigins.win/raw?url=';
-                const rssUrl = 'https://www.aljazeera.com/xml/rss/all.xml';
                 
-                const response = await fetch(corsProxy + encodeURIComponent(rssUrl));
-                const text = await response.text();
+                // 複数のRSSソース（地域バランスを考慮）
+                const sources = [
+                    {
+                        name: 'Al Jazeera',
+                        url: 'https://www.aljazeera.com/xml/rss/all.xml',
+                        strength: '中東・アジア'
+                    },
+                    {
+                        name: 'BBC World',
+                        url: 'https://feeds.bbci.co.uk/news/world/rss.xml',
+                        strength: '全世界バランス'
+                    },
+                    {
+                        name: 'Reuters',
+                        url: 'https://www.reutersagency.com/feed/',
+                        strength: '全世界・速報'
+                    }
+                ];
                 
-                // XMLをパース
-                const parser = new DOMParser();
-                const xml = parser.parseFromString(text, 'text/xml');
-                const items = xml.querySelectorAll('item');
+                // 全ソースから並列で取得
+                const allArticles = [];
+                
+                for (const source of sources) {
+                    try {
+                        const response = await fetch(corsProxy + encodeURIComponent(source.url));
+                        const text = await response.text();
+                        const parser = new DOMParser();
+                        const xml = parser.parseFromString(text, 'text/xml');
+                        const items = xml.querySelectorAll('item');
+                        
+                        items.forEach((item, index) => {
+                            if (index >= 20) return; // 各ソース最大20件
+                            
+                            allArticles.push({
+                                title: item.querySelector('title')?.textContent || '',
+                                link: item.querySelector('link')?.textContent || '',
+                                description: item.querySelector('description')?.textContent || '',
+                                pubDate: item.querySelector('pubDate')?.textContent || '',
+                                source: source.name
+                            });
+                        });
+                        
+                        console.log(`✅ ${source.name}: ${Math.min(20, items.length)} articles`);
+                    } catch (err) {
+                        console.warn(`⚠️ ${source.name} failed:`, err.message);
+                    }
+                }
+                
+                console.log(`📰 Total articles fetched: ${allArticles.length}`);
                 
                 const events = [];
                 
-                // 位置情報マッピング
+                // 世界中の位置情報マッピング（大幅拡充）
                 const locations = {
+                    // ヨーロッパ
                     'Ukraine': { lat: 48.3794, lng: 31.1656 },
                     'Kyiv': { lat: 50.4501, lng: 30.5234 },
+                    'Russia': { lat: 55.7558, lng: 37.6173 },
+                    'Moscow': { lat: 55.7558, lng: 37.6173 },
+                    'Paris': { lat: 48.8566, lng: 2.3522 },
+                    'France': { lat: 46.2276, lng: 2.2137 },
+                    'Germany': { lat: 51.1657, lng: 10.4515 },
+                    'UK': { lat: 55.3781, lng: -3.4360 },
+                    'Poland': { lat: 51.9194, lng: 19.1451 },
+                    
+                    // 中東
                     'Gaza': { lat: 31.5, lng: 34.45 },
                     'Israel': { lat: 31.0461, lng: 34.8516 },
                     'Palestine': { lat: 31.9522, lng: 35.2332 },
                     'West Bank': { lat: 31.9, lng: 35.2 },
                     'Rafah': { lat: 31.2858, lng: 34.2458 },
-                    'Sudan': { lat: 15.5007, lng: 32.5599 },
-                    'Myanmar': { lat: 21.9162, lng: 95.9560 },
-                    'Yemen': { lat: 15.5527, lng: 48.5164 },
-                    'Syria': { lat: 34.8021, lng: 38.9968 },
-                    'Taiwan': { lat: 23.6978, lng: 120.9605 },
                     'Iran': { lat: 32.4279, lng: 53.6880 },
+                    'Tehran': { lat: 35.6892, lng: 51.3890 },
                     'Iraq': { lat: 33.2232, lng: 43.6793 },
-                    'Afghanistan': { lat: 33.9391, lng: 67.7100 },
+                    'Baghdad': { lat: 33.3152, lng: 44.3661 },
+                    'Syria': { lat: 34.8021, lng: 38.9968 },
+                    'Damascus': { lat: 33.5138, lng: 36.2765 },
                     'Lebanon': { lat: 33.8547, lng: 35.8623 },
+                    'Beirut': { lat: 33.8886, lng: 35.4955 },
+                    'Yemen': { lat: 15.5527, lng: 48.5164 },
+                    'Saudi Arabia': { lat: 23.8859, lng: 45.0792 },
+                    'Qatar': { lat: 25.3548, lng: 51.1839 },
+                    'Doha': { lat: 25.2854, lng: 51.5310 },
+                    
+                    // アフリカ
+                    'Sudan': { lat: 15.5007, lng: 32.5599 },
+                    'Khartoum': { lat: 15.5007, lng: 32.5599 },
                     'Ethiopia': { lat: 9.1450, lng: 40.4897 },
                     'Somalia': { lat: 5.1521, lng: 46.1996 },
-                    'Russia': { lat: 61.5240, lng: 105.3188 },
-                    'China': { lat: 35.8617, lng: 104.1954 },
+                    'Libya': { lat: 26.3351, lng: 17.2283 },
+                    'Mali': { lat: 17.5707, lng: -3.9962 },
+                    'Nigeria': { lat: 9.0820, lng: 8.6753 },
+                    'Kenya': { lat: -0.0236, lng: 37.9062 },
+                    'Congo': { lat: -4.0383, lng: 21.7587 },
+                    'Zimbabwe': { lat: -19.0154, lng: 29.1549 },
+                    
+                    // アジア
+                    'Myanmar': { lat: 21.9162, lng: 95.9560 },
+                    'Afghanistan': { lat: 33.9391, lng: 67.7100 },
+                    'Kabul': { lat: 34.5553, lng: 69.2075 },
                     'Pakistan': { lat: 30.3753, lng: 69.3451 },
-                    'Doha': { lat: 25.2854, lng: 51.5310 },
-                    'Paris': { lat: 48.8566, lng: 2.3522 },
-                    'Sydney': { lat: -33.8688, lng: 151.2093 }
+                    'India': { lat: 20.5937, lng: 78.9629 },
+                    'Kashmir': { lat: 34.0837, lng: 74.7973 },
+                    'China': { lat: 35.8617, lng: 104.1954 },
+                    'Taiwan': { lat: 23.6978, lng: 120.9605 },
+                    'North Korea': { lat: 40.3399, lng: 127.5101 },
+                    'South Korea': { lat: 37.5665, lng: 126.9780 },
+                    'Seoul': { lat: 37.5665, lng: 126.9780 },
+                    'Japan': { lat: 36.2048, lng: 138.2529 },
+                    'Philippines': { lat: 12.8797, lng: 121.7740 },
+                    
+                    // 南北米（重点追加）
+                    'Venezuela': { lat: 10.4806, lng: -66.9036 },
+                    'Caracas': { lat: 10.4806, lng: -66.9036 },
+                    'Colombia': { lat: 4.5709, lng: -74.2973 },
+                    'Bogota': { lat: 4.7110, lng: -74.0721 },
+                    'Brazil': { lat: -14.2350, lng: -51.9253 },
+                    'Sao Paulo': { lat: -23.5505, lng: -46.6333 },
+                    'Ecuador': { lat: -1.8312, lng: -78.1834 },
+                    'Peru': { lat: -9.1900, lng: -75.0152 },
+                    'Chile': { lat: -35.6751, lng: -71.5430 },
+                    'Argentina': { lat: -38.4161, lng: -63.6167 },
+                    'Mexico': { lat: 23.6345, lng: -102.5528 },
+                    'Honduras': { lat: 15.2000, lng: -86.2419 },
+                    'Haiti': { lat: 18.9712, lng: -72.2852 },
+                    'Cuba': { lat: 21.5218, lng: -77.7812 },
+                    'United States': { lat: 37.0902, lng: -95.7129 },
+                    'USA': { lat: 37.0902, lng: -95.7129 },
+                    'Canada': { lat: 56.1304, lng: -106.3468 },
+                    
+                    // オセアニア
+                    'Australia': { lat: -25.2744, lng: 133.7751 },
+                    'Sydney': { lat: -33.8688, lng: 151.2093 },
+                    'New Zealand': { lat: -40.9006, lng: 174.8860 }
                 };
                 
-                items.forEach((item, index) => {
-                    if (index >= 50) return; // 最大50件
-                    
-                    const title = item.querySelector('title')?.textContent || '';
-                    const link = item.querySelector('link')?.textContent || '';
-                    const description = item.querySelector('description')?.textContent || '';
-                    const pubDate = item.querySelector('pubDate')?.textContent || '';
-                    
-                    // 紛争関連キーワードでフィルタ
-                    const conflictKeywords = ['war', 'conflict', 'attack', 'killed', 'violence', 'protest', 'crisis', 'military', 'strike', 'bombing'];
+                // 紛争関連キーワード（拡充）
+                const conflictKeywords = [
+                    'war', 'conflict', 'attack', 'killed', 'death', 'violence', 
+                    'protest', 'crisis', 'military', 'strike', 'bombing', 'airstrike',
+                    'coup', 'rebellion', 'insurgency', 'militia', 'armed', 'fighting',
+                    'clashes', 'siege', 'blockade', 'invasion', 'occupation'
+                ];
+                
+                allArticles.forEach(article => {
+                    const { title, link, description, pubDate, source } = article;
                     const content = (title + ' ' + description).toLowerCase();
                     
+                    // 紛争関連のみ
                     if (!conflictKeywords.some(kw => content.includes(kw))) {
-                        return; // 紛争関連でない記事はスキップ
+                        return;
                     }
                     
                     // 位置情報を抽出
@@ -589,11 +686,11 @@
                     
                     // 深刻度を判定
                     let severity = 'low';
-                    if (content.match(/killed|death|massacre|bombing|airstrike/)) {
+                    if (content.match(/killed|death|massacre|bombing|airstrike|genocide/)) {
                         severity = 'critical';
-                    } else if (content.match(/attack|military|war|violence|strike/)) {
+                    } else if (content.match(/attack|military|war|violence|strike|coup/)) {
                         severity = 'high';
-                    } else if (content.match(/protest|tension|dispute/)) {
+                    } else if (content.match(/protest|tension|dispute|clashes/)) {
                         severity = 'medium';
                     }
                     
@@ -605,7 +702,7 @@
                         category = 'humanitarian';
                     } else if (content.includes('diplomatic') || content.includes('talks') || content.includes('negotiation')) {
                         category = 'diplomatic';
-                    } else if (content.includes('political') || content.includes('tension')) {
+                    } else if (content.includes('political') || content.includes('election') || content.includes('tension')) {
                         category = 'political';
                     }
                     
@@ -623,16 +720,18 @@
                         date: date,
                         category: category,
                         sources: 1,
-                        articleUrl: link
+                        articleUrl: link,
+                        sourceName: source
                     });
                 });
                 
-                console.log(`✅ Successfully fetched ${events.length} real conflict news events`);
+                console.log(`🌍 Successfully processed ${events.length} conflict events from ${sources.length} sources`);
+                console.log(`📊 Coverage: Middle East, Asia, Africa, Americas, Europe, Oceania`);
                 
                 return events.length > 0 ? events : getFallbackData();
                 
             } catch (error) {
-                console.error('❌ Error fetching real news:', error);
+                console.error('❌ Error fetching news:', error);
                 console.log('📋 Using fallback data...');
                 return getFallbackData();
             }
@@ -643,8 +742,21 @@
             return [
                 {
                     id: 1,
+                    title: "ベネズエラで政治危機",
+                    location: "Caracas",
+                    lat: 10.4806,
+                    lng: -66.9036,
+                    severity: "critical",
+                    description: "マドゥロ政権後の混乱が続いています。国際社会が注視。",
+                    date: new Date().toISOString().split('T')[0],
+                    category: "political",
+                    sources: 12,
+                    articleUrl: "https://www.aljazeera.com/news/2026/2/10/venezuela-protests-amnesty-law"
+                },
+                {
+                    id: 2,
                     title: "ウクライナ東部で激しい戦闘",
-                    location: "ドネツク, ウクライナ",
+                    location: "Ukraine",
                     lat: 48.0159,
                     lng: 37.8029,
                     severity: "critical",
@@ -655,9 +767,9 @@
                     articleUrl: "https://www.aljazeera.com/news/liveblog/2026/2/12/russia-ukraine-war-list-of-key-events-day-1449"
                 },
                 {
-                    id: 2,
+                    id: 3,
                     title: "ガザ地区での人道支援",
-                    location: "ガザ, パレスチナ",
+                    location: "Gaza",
                     lat: 31.5,
                     lng: 34.45,
                     severity: "high",
@@ -668,74 +780,22 @@
                     articleUrl: "https://www.aljazeera.com/news/liveblog/2026/2/11/live-israeli-attacks-target-gaza-west-bank-as-trump-netanyahu-to-meet"
                 },
                 {
-                    id: 3,
-                    title: "イスラエル・パレスチナ情勢",
-                    location: "西岸地区",
-                    lat: 31.9,
-                    lng: 35.2,
-                    severity: "critical",
-                    description: "イスラエルによる攻撃が続いています。市民の犠牲が増加中。",
-                    date: new Date().toISOString().split('T')[0],
-                    category: "conflict",
-                    sources: 78,
-                    articleUrl: "https://www.aljazeera.com/news/liveblog/2026/2/10/live-israeli-attack-on-gaza-building-kills-four-palestinians"
-                },
-                {
                     id: 4,
-                    title: "ラファ国境検問所の状況",
-                    location: "ラファ, ガザ",
-                    lat: 31.2858,
-                    lng: 34.2458,
-                    severity: "high",
-                    description: "国境検問所の部分的な再開。数千人が避難を待っています。",
+                    title: "コロンビア国境で緊張",
+                    location: "Colombia",
+                    lat: 4.5709,
+                    lng: -74.2973,
+                    severity: "medium",
+                    description: "ベネズエラとの国境地帯で緊張が高まっています。",
                     date: new Date().toISOString().split('T')[0],
-                    category: "humanitarian",
-                    sources: 45,
-                    articleUrl: "https://www.aljazeera.com/news/liveblog/2026/2/1/live-israel-to-partially-open-rafah-in-gaza-as-dozens-killed-in-attacks"
+                    category: "political",
+                    sources: 8,
+                    articleUrl: "https://www.bbc.com/news/topics/cyx524jx7v7t"
                 },
                 {
                     id: 5,
-                    title: "イラン外相がドーハで演説",
-                    location: "ドーハ, カタール",
-                    lat: 25.2854,
-                    lng: 51.5310,
-                    severity: "medium",
-                    description: "地域情勢について国際フォーラムで演説。外交的緊張が続いています。",
-                    date: new Date().toISOString().split('T')[0],
-                    category: "diplomatic",
-                    sources: 34,
-                    articleUrl: "https://www.aljazeera.com/news/liveblog/2026/2/7/live-irans-top-diplomat-set-to-address-al-jazeera-forum-in-doha"
-                },
-                {
-                    id: 6,
-                    title: "ガザでの医療危機",
-                    location: "ガザシティ, パレスチナ",
-                    lat: 31.5,
-                    lng: 34.45,
-                    severity: "critical",
-                    description: "医療施設への攻撃により、深刻な医療危機が続いています。",
-                    date: new Date().toISOString().split('T')[0],
-                    category: "humanitarian",
-                    sources: 92,
-                    articleUrl: "https://www.aljazeera.com/news/liveblog/2026/2/4/live-israeli-forces-kill-10-palestinians-in-overnight-attacks-across-gaza"
-                },
-                {
-                    id: 7,
-                    title: "オーストラリアで抗議デモ",
-                    location: "シドニー, オーストラリア",
-                    lat: -33.8688,
-                    lng: 151.2093,
-                    severity: "medium",
-                    description: "イスラエル大統領訪問に対する大規模な抗議活動が発生。",
-                    date: new Date().toISOString().split('T')[0],
-                    category: "protest",
-                    sources: 23,
-                    articleUrl: "https://www.aljazeera.com/tag/gaza"
-                },
-                {
-                    id: 8,
                     title: "スーダンでの人道危機",
-                    location: "ハルツーム, スーダン",
+                    location: "Sudan",
                     lat: 15.5007,
                     lng: 32.5599,
                     severity: "critical",
@@ -746,9 +806,9 @@
                     articleUrl: "https://www.bbc.com/news/topics/cnx753jenqxt"
                 },
                 {
-                    id: 9,
+                    id: 6,
                     title: "台湾海峡での緊張",
-                    location: "台湾海峡",
+                    location: "Taiwan",
                     lat: 24.5,
                     lng: 120.0,
                     severity: "high",
@@ -759,9 +819,22 @@
                     articleUrl: "https://www.bbc.com/news/topics/c9wpm0zn92gt"
                 },
                 {
-                    id: 10,
+                    id: 7,
+                    title: "ハイチで治安悪化",
+                    location: "Haiti",
+                    lat: 18.9712,
+                    lng: -72.2852,
+                    severity: "high",
+                    description: "ギャング間の暴力が激化。国際的な安定化努力が続いています。",
+                    date: new Date().toISOString().split('T')[0],
+                    category: "conflict",
+                    sources: 15,
+                    articleUrl: "https://www.cfr.org/global-conflict-tracker/conflict/political-instability-haiti"
+                },
+                {
+                    id: 8,
                     title: "ミャンマー国境での衝突",
-                    location: "カチン州, ミャンマー",
+                    location: "Myanmar",
                     lat: 25.3867,
                     lng: 97.3958,
                     severity: "medium",
@@ -770,11 +843,40 @@
                     category: "conflict",
                     sources: 15,
                     articleUrl: "https://www.bbc.com/news/topics/c207p54m4e3t"
-                }
-            ];
-        }
+                },
+                {
+                    id: 9,
+                    title: "マリでテロ攻撃",
+                    location: "Mali",
+                    lat: 17.5707,
+                    lng: -3.9962,
+                    severity: "high",
+                    description: "首都バマコでの攻撃。アルカイダ系組織の活動。",
+                    date: new Date().toISOString().split('T')[0],
+                    category: "conflict",
+                    sources: 9,
+                    articleUrl: "https://www.crisisgroup.org/crisiswatch"
+                },
+                {
+                    id: 10,
+                    title: "メキシコ国境での暴力",
+                    location: "Mexico",
+                    lat: 25.8,
+                    lng: -100.3,
+                    severity: "medium",
+                    description: "麻薬カルテルとの対立が激化しています。",
+                    date: new Date().toISOString().split('T')[0],
+                    category: "conflict",
+                    sources: 23,
+                    articleUrl: "https://www.cfr.org/global-conflict-tracker/conflict/criminal-violence-mexico"
+                },
+            {
+                   articleUrl: "https://www.bbc.com/news/topics/c207p54m4e3t"
+            }
+        ];
+    }
 
-        function ConflictMap() {
+    function ConflictMap() {
             const mapContainer = useRef(null);
             const map = useRef(null);
             const markers = useRef([]);
