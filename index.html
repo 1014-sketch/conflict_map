@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>世界紛争マップ</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'></script>
+    <link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; background: #0a0e27; color: #fff; overflow: hidden; }
+        #root { width: 100vw; height: 100vh; height: 100dvh; }
+        .container { width: 100%; height: 100%; display: flex; flex-direction: column; position: relative; }
+        .header { background: rgba(10, 14, 39, 0.95); padding: 16px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); z-index: 2; }
+        .header-content { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex-wrap: wrap; }
+        .header-text { flex: 1; min-width: 200px; }
+        .header h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+        .header p { font-size: 13px; color: rgba(255, 255, 255, 0.6); }
+        .filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .filter-group { display: flex; flex-direction: column; gap: 4px; }
+        .filter-label { font-size: 11px; color: rgba(255, 255, 255, 0.5); text-transform: uppercase; letter-spacing: 0.5px; }
+        .filter-select { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; padding: 6px 12px; color: #fff; font-size: 13px; cursor: pointer; transition: all 0.2s; min-width: 120px; }
+        .filter-select option { background: #1a1f3a; color: #fff; padding: 8px; }
+        .refresh-btn { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 6px; padding: 8px 16px; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
+        .refresh-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); }
+        .refresh-btn.loading { opacity: 0.7; cursor: not-allowed; }
+        .stats { position: absolute; top: 90px; left: 20px; background: rgba(10, 14, 39, 0.95); padding: 12px 16px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); z-index: 1; font-size: 12px; color: rgba(255, 255, 255, 0.8); }
+        .stats-number { font-size: 20px; font-weight: 700; color: #fff; margin-right: 4px; }
+        .legend { position: absolute; bottom: 30px; right: 20px; background: rgba(10, 14, 39, 0.95); padding: 16px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); z-index: 1; max-width: 300px; }
+        .legend h3 { font-size: 13px; margin-bottom: 10px; font-weight: 600; }
+        .legend-item { display: flex; align-items: center; margin-bottom: 6px; font-size: 12px; }
+        .legend-color { width: 14px; height: 14px; border-radius: 50%; margin-right: 8px; flex-shrink: 0; }
+        #map { flex: 1; width: 100%; cursor: grab; outline: none; touch-action: none; }
+        #map:active { cursor: grabbing; }
+        .mapboxgl-popup-content { background: rgba(10, 14, 39, 0.98); color: #fff; border-radius: 12px; padding: 14px; min-width: 260px; max-width: 300px; border: 1px solid rgba(255, 255, 255, 0.1); }
+        .mapboxgl-popup-close-button { color: #fff; font-size: 22px; padding: 6px 10px; }
+        .mapboxgl-popup-close-button:hover { background: rgba(255, 255, 255, 0.1); }
+        .popup-title { font-size: 15px; font-weight: 600; margin-bottom: 6px; line-height: 1.4; }
+        .popup-location { font-size: 12px; color: rgba(255, 255, 255, 0.6); margin-bottom: 10px; }
+        .popup-severity { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; margin-bottom: 10px; }
+        .popup-description { font-size: 13px; line-height: 1.5; color: rgba(255, 255, 255, 0.8); margin-bottom: 8px; }
+        .popup-date { font-size: 11px; color: rgba(255, 255, 255, 0.5); margin-top: 8px; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const categories = {
+            all: 'すべて',
+            conflict: '武力紛争',
+            protest: '抗議・デモ',
+            political: '政治的緊張',
+            humanitarian: '人道危機',
+            diplomatic: '外交問題'
+        };
+
+        const severityColors = {
+            critical: '#ff0040',
+            high: '#ff6b00',
+            medium: '#ffc107',
+            low: '#4caf50'
+        };
+
+        const severityLabels = {
+            critical: '緊急',
+            high: '高',
+            medium: '中',
+            low: '低'
+        };
+
+        const API_ENDPOINT = window.location.hostname === 'localhost' 
+          ? 'http://localhost:3000/api/events'
+          : '/api/events';
+
+        async function fetchGDELTEvents() {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 8000); // 8秒待つ
+
+                const response = await fetch(API_ENDPOINT, { signal: controller.signal });
+                clearTimeout(timeoutId);
+
+                if (!response.ok) throw new Error(`API error: ${response.status}`);
+                const data = await response.json();
+                
+                // データがあればそれを返す
+                if (data.success && data.events) {
+                    return data.events;
+                }
+                return []; // エラーなら空
+            } catch (error) {
+                console.log('API Fetch failed:', error);
+                return []; // エラーなら空（古い嘘データは出さない）
+            }
+        }
+
+        function ConflictMap() {
+            const mapContainer = useRef(null);
+            const map = useRef(null);
+            const markers = useRef([]);
+            const [loaded, setLoaded] = useState(false);
+            const [events, setEvents] = useState([]);
+            const [loading, setLoading] = useState(false);
+            const [categoryFilter, setCategoryFilter] = useState('all');
+            const [severityFilter, setSeverityFilter] = useState('all');
+
+            const filteredEvents = events.filter(event => {
+                const categoryMatch = categoryFilter === 'all' || event.category === categoryFilter;
+                const severityMatch = severityFilter === 'all' || event.severity === severityFilter;
+                return categoryMatch && severityMatch;
+            });
+
+            const loadEvents = async () => {
+                setLoading(true);
+                try {
+                    const data = await fetchGDELTEvents();
+                    setEvents(data || []);
+                } catch (error) {
+                    console.error('イベント取得失敗:', error);
+                    setEvents([]);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            useEffect(() => {
+                if (map.current) return;
+                mapboxgl.accessToken = 'pk.eyJ1IjoieXV1czI0IiwiYSI6ImNtbGpkNnZndzBjc3kzZ29kcGJieGM1amwifQ.D_MBoSrs0EYhqk13xiRBxg';
+
+                map.current = new mapboxgl.Map({
+                    container: mapContainer.current,
+                    style: 'mapbox://styles/mapbox/dark-v11',
+                    center: [40, 25],
+                    zoom: 1.8,
+                    projection: 'globe',
+                    attributionControl: false,
+                    scrollZoom: false, // スクロールズーム無効化（独自実装のため）
+                    dragPan: true,
+                    touchZoomRotate: true
+                });
+
+                map.current.on('load', () => {
+                    setLoaded(true);
+                    map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+                    
+                    map.current.setFog({
+                        color: 'rgb(186, 210, 235)',
+                        'high-color': 'rgb(36, 92, 223)',
+                        'horizon-blend': 0.02,
+                        'space-color': 'rgb(11, 11, 25)',
+                        'star-intensity': 0.6
+                    });
+
+                    // スクロール操作のカスタマイズ（移動メイン、Ctrl+スクロールでズーム）
+                    mapContainer.current.addEventListener('wheel', (e) => {
+                        e.preventDefault();
+                        if (e.ctrlKey || e.metaKey) {
+                            const zoom = map.current.getZoom();
+                            map.current.setZoom(zoom - e.deltaY * 0.01);
+                        } else {
+                            const panSpeed = 0.8;
+                            map.current.panBy([e.deltaX * panSpeed, e.deltaY * panSpeed], {
+                                duration: 0
+                            });
+                        }
+                    }, { passive: false });
+
+                    loadEvents();
+                });
+            }, []);
+
+            useEffect(() => {
+                if (!loaded || !map.current) return;
+                markers.current.forEach(marker => marker.remove());
+                markers.current = [];
+
+                filteredEvents.forEach(event => {
+                    const el = document.createElement('div');
+                    const size = event.severity === 'critical' ? 40 : 30;
+                    
+                    Object.assign(el.style, {
+                        width: size + 'px', height: size + 'px',
+                        backgroundColor: severityColors[event.severity],
+                        borderRadius: '50%', border: '3px solid white',
+                        cursor: 'pointer', boxShadow: `0 0 20px ${severityColors[event.severity]}`
+                    });
+
+                    const searchUrl = `https://news.google.com/search?q=${encodeURIComponent(event.title + " " + event.location)}`;
+
+                    const popupHTML = `
+                        <div class="popup-title">${event.title}</div>
+                        <div class="popup-location">📍 ${event.location}</div>
+                        <div class="popup-severity" style="background: ${severityColors[event.severity]}">
+                            深刻度: ${severityLabels[event.severity]}
+                        </div>
+                        <div class="popup-description">${event.description || '詳細情報なし'}</div>
+                        <div style="font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 8px;">
+                            カテゴリ: ${categories[event.category] || event.category}
+                        </div>
+                        <div class="popup-date">更新: ${new Date(event.date).toLocaleDateString()}</div>
+                        <a href="${searchUrl}" 
+                           target="_blank" 
+                           rel="noopener noreferrer" 
+                           onclick="event.stopPropagation();"
+                           style="display: inline-block; margin-top: 12px; padding: 10px 16px; 
+                                  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                                  color: white; text-decoration: none; border-radius: 8px; 
+                                  font-size: 13px; font-weight: 600; cursor: pointer; pointer-events: auto;">
+                            🔍 関連ニュースを検索 →
+                        </a>
+                    `;
+
+                    const popup = new mapboxgl.Popup({ offset: 25, closeButton: true, maxWidth: '300px' })
+                        .setHTML(popupHTML);
+
+                    const marker = new mapboxgl.Marker(el)
+                        .setLngLat([event.lng, event.lat])
+                        .setPopup(popup)
+                        .addTo(map.current);
+                    
+                    markers.current.push(marker);
+                });
+            }, [loaded, events, categoryFilter, severityFilter]);
+
+            return (
+                <div className="container">
+                    <div className="header">
+                        <div className="header-content">
+                            <div className="header-text">
+                                <h1>🌍 世界紛争リアルタイムマップ</h1>
+                                <p>世界各地の紛争・危機をリアルタイムで可視化</p>
+                            </div>
+                            <div className="filters">
+                                <div className="filter-group">
+                                    <label className="filter-label">カテゴリ</label>
+                                    <select className="filter-select" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+                                        {Object.entries(categories).map(([key, label]) => (
+                                            <option key={key} value={key}>{label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="filter-group">
+                                    <label className="filter-label">深刻度</label>
+                                    <select className="filter-select" value={severityFilter} onChange={(e) => setSeverityFilter(e.target.value)}>
+                                        <option value="all">すべて</option>
+                                        <option value="critical">緊急</option>
+                                        <option value="high">高</option>
+                                        <option value="medium">中</option>
+                                        <option value="low">低</option>
+                                    </select>
+                                </div>
+                                <button className={`refresh-btn ${loading ? 'loading' : ''}`} onClick={loadEvents} disabled={loading}>
+                                    <span>{loading ? '🔄' : '🔃'}</span> {loading ? '更新中...' : '更新'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div ref={mapContainer} id="map" />
+                    
+                    {/* ステータス表示の修正：データがないときは分かりやすく表示 */}
+                    {loaded && (
+                        <div className="stats">
+                            {filteredEvents.length > 0 ? (
+                                <><span className="stats-number">{filteredEvents.length}</span> 件のイベント（過去2日）</>
+                            ) : (
+                                <span style={{color: '#ff6b00'}}>⚠️ データ取得不可、または直近の紛争情報がありません</span>
+                            )}
+                        </div>
+                    )}
+
+                    <div className="legend">
+                        <h3>深刻度</h3>
+                        {Object.entries(severityLabels).map(([key, label]) => (
+                            <div className="legend-item" key={key}>
+                                <div className="legend-color" style={{background: severityColors[key]}}></div>
+                                {label}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<ConflictMap />);
+    </script>
+</body>
+</html>
