@@ -187,6 +187,65 @@
             backdrop-filter: blur(10px);
             z-index: 1;
             max-width: calc(100vw - 40px);
+            transition: all 0.3s ease;
+        }
+        
+        /* モバイル用：コンパクトな凡例 */
+        @media (max-width: 767px) {
+            .legend {
+                bottom: 80px;
+                right: 10px;
+                padding: 0;
+                border: none;
+                background: transparent;
+                backdrop-filter: none;
+            }
+            
+            .legend.collapsed .legend-content {
+                display: none;
+            }
+            
+            .legend.collapsed .legend-toggle {
+                background: rgba(10, 14, 39, 0.95);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            .legend:not(.collapsed) .legend-toggle {
+                display: none;
+            }
+            
+            .legend:not(.collapsed) .legend-content {
+                background: rgba(10, 14, 39, 0.95);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                backdrop-filter: blur(10px);
+                padding: 12px;
+                border-radius: 10px;
+            }
+        }
+        
+        .legend-toggle {
+            display: none;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(10, 14, 39, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: all 0.2s;
+        }
+        
+        @media (max-width: 767px) {
+            .legend.collapsed .legend-toggle {
+                display: flex;
+            }
+        }
+        
+        .legend-toggle:active {
+            transform: scale(0.95);
         }
 
         .legend h3 {
@@ -194,12 +253,26 @@
             margin-bottom: 10px;
             font-weight: 600;
         }
+        
+        @media (max-width: 767px) {
+            .legend h3 {
+                font-size: 12px;
+                margin-bottom: 8px;
+            }
+        }
 
         .legend-item {
             display: flex;
             align-items: center;
             margin-bottom: 6px;
             font-size: 12px;
+        }
+        
+        @media (max-width: 767px) {
+            .legend-item {
+                font-size: 11px;
+                margin-bottom: 5px;
+            }
         }
 
         .legend-item:last-child {
@@ -212,6 +285,38 @@
             border-radius: 50%;
             margin-right: 8px;
             flex-shrink: 0;
+        }
+        
+        @media (max-width: 767px) {
+            .legend-color {
+                width: 12px;
+                height: 12px;
+                margin-right: 6px;
+            }
+        }
+        
+        .legend-close {
+            display: none;
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 20px;
+            cursor: pointer;
+            padding: 4px;
+            line-height: 1;
+        }
+        
+        @media (max-width: 767px) {
+            .legend:not(.collapsed) .legend-close {
+                display: block;
+            }
+        }
+        
+        .legend-close:active {
+            color: rgba(255, 255, 255, 1);
         }
 
         #map {
@@ -256,60 +361,138 @@
             background-color: rgba(255, 255, 255, 0.1);
         }
 
+        .mapboxgl-popup {
+            max-width: none !important;
+        }
+        
         .mapboxgl-popup-content {
             background: rgba(10, 14, 39, 0.98);
             color: #fff;
             border-radius: 12px;
-            padding: 14px;
-            min-width: 260px;
-            max-width: calc(100vw - 40px);
+            padding: 16px;
+            max-width: 320px;
             border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+        }
+        
+        /* モバイル専用の最適化 */
+        @media (max-width: 767px) {
+            .mapboxgl-popup-content {
+                max-width: 280px;
+                max-height: 65vh;
+                overflow-y: auto;
+                padding: 14px;
+            }
+            
+            /* スクロールバーのスタイル */
+            .mapboxgl-popup-content::-webkit-scrollbar {
+                width: 4px;
+            }
+            
+            .mapboxgl-popup-content::-webkit-scrollbar-thumb {
+                background: rgba(255, 255, 255, 0.3);
+                border-radius: 2px;
+            }
         }
 
         .mapboxgl-popup-close-button {
             color: #fff;
             font-size: 22px;
-            padding: 6px 10px;
+            padding: 4px 8px;
             line-height: 1;
+            width: 30px;
+            height: 30px;
+            right: 6px;
+            top: 6px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+        
+        /* モバイルで閉じるボタンを少し大きく */
+        @media (max-width: 767px) {
+            .mapboxgl-popup-close-button {
+                font-size: 24px;
+                width: 34px;
+                height: 34px;
+            }
         }
 
         .mapboxgl-popup-close-button:hover {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.2);
         }
 
         .popup-title {
             font-size: 15px;
-            font-weight: 600;
-            margin-bottom: 6px;
-            line-height: 1.4;
+            font-weight: 700;
+            margin-bottom: 8px;
+            line-height: 1.3;
+            padding-right: 20px;
         }
 
         .popup-location {
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.6);
-            margin-bottom: 10px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 8px;
         }
 
         .popup-severity {
             display: inline-block;
-            padding: 4px 10px;
+            padding: 5px 12px;
             border-radius: 6px;
-            font-size: 11px;
+            font-size: 12px;
             font-weight: 600;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
         .popup-description {
             font-size: 13px;
             line-height: 1.5;
-            color: rgba(255, 255, 255, 0.8);
+            color: rgba(255, 255, 255, 0.9);
             margin-bottom: 8px;
         }
 
         .popup-date {
             font-size: 11px;
-            color: rgba(255, 255, 255, 0.5);
-            margin-top: 8px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 6px;
+            margin-bottom: 8px;
+        }
+        
+        .popup-meta {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 6px;
+        }
+        
+        .article-link-button {
+            display: block;
+            width: 100%;
+            text-align: center;
+            margin-top: 10px;
+            padding: 10px 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 7px;
+            font-size: 13px;
+            font-weight: 600;
+            box-shadow: 0 3px 10px rgba(102, 126, 234, 0.4);
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+        
+        /* モバイルでボタンを少し大きく */
+        @media (max-width: 767px) {
+            .article-link-button {
+                padding: 12px 16px;
+                font-size: 14px;
+            }
+        }
+        
+        .article-link-button:active {
+            transform: scale(0.97);
+            box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
         }
 
         .marker {
@@ -670,19 +853,22 @@
                         return;
                     }
                     
-                    // 位置情報を抽出
+                    // 位置情報を抽出（大文字小文字を区別しない）
                     let locationName = null;
                     let coords = null;
                     
                     for (const [loc, coord] of Object.entries(locations)) {
-                        if (title.includes(loc) || description.includes(loc)) {
+                        if (content.includes(loc.toLowerCase())) {
                             locationName = loc;
                             coords = coord;
                             break;
                         }
                     }
                     
-                    if (!coords) return; // 位置不明はスキップ
+                    if (!coords) {
+                        console.log(`⚠️ No location found for: ${title.substring(0, 50)}...`);
+                        return; // 位置不明はスキップ
+                    }
                     
                     // 深刻度を判定
                     let severity = 'low';
@@ -728,155 +914,18 @@
                 console.log(`🌍 Successfully processed ${events.length} conflict events from ${sources.length} sources`);
                 console.log(`📊 Coverage: Middle East, Asia, Africa, Americas, Europe, Oceania`);
                 
-                return events.length > 0 ? events : getFallbackData();
+                return events; // フォールバックなしで、取得したイベントのみ返す
                 
             } catch (error) {
                 console.error('❌ Error fetching news:', error);
-                console.log('📋 Using fallback data...');
-                return getFallbackData();
+                console.log('⚠️ No events fetched, returning empty array');
+                return []; // エラー時は空配列を返す
             }
         }
         
         // フォールバック用のダミーデータ
-        function getFallbackData() {
-            return [
-                {
-                    id: 1,
-                    title: "ベネズエラで政治危機",
-                    location: "Caracas",
-                    lat: 10.4806,
-                    lng: -66.9036,
-                    severity: "critical",
-                    description: "マドゥロ政権後の混乱が続いています。国際社会が注視。",
-                    date: new Date().toISOString().split('T')[0],
-                    category: "political",
-                    sources: 12,
-                    articleUrl: "https://www.aljazeera.com/news/2026/2/10/venezuela-protests-amnesty-law"
-                },
-                {
-                    id: 2,
-                    title: "ウクライナ東部で激しい戦闘",
-                    location: "Ukraine",
-                    lat: 48.0159,
-                    lng: 37.8029,
-                    severity: "critical",
-                    description: "ドネツク地域で激しい砲撃が報告されています。民間インフラへの被害が拡大中。",
-                    date: new Date().toISOString().split('T')[0],
-                    category: "conflict",
-                    sources: 45,
-                    articleUrl: "https://www.aljazeera.com/news/liveblog/2026/2/12/russia-ukraine-war-list-of-key-events-day-1449"
-                },
-                {
-                    id: 3,
-                    title: "ガザ地区での人道支援",
-                    location: "Gaza",
-                    lat: 31.5,
-                    lng: 34.45,
-                    severity: "high",
-                    description: "人道支援物資の搬入が進行中。医療支援が急務となっています。",
-                    date: new Date().toISOString().split('T')[0],
-                    category: "humanitarian",
-                    sources: 56,
-                    articleUrl: "https://www.aljazeera.com/news/liveblog/2026/2/11/live-israeli-attacks-target-gaza-west-bank-as-trump-netanyahu-to-meet"
-                },
-                {
-                    id: 4,
-                    title: "コロンビア国境で緊張",
-                    location: "Colombia",
-                    lat: 4.5709,
-                    lng: -74.2973,
-                    severity: "medium",
-                    description: "ベネズエラとの国境地帯で緊張が高まっています。",
-                    date: new Date().toISOString().split('T')[0],
-                    category: "political",
-                    sources: 8,
-                    articleUrl: "https://www.bbc.com/news/topics/cyx524jx7v7t"
-                },
-                {
-                    id: 5,
-                    title: "スーダンでの人道危機",
-                    location: "Sudan",
-                    lat: 15.5007,
-                    lng: 32.5599,
-                    severity: "critical",
-                    description: "武装勢力間の衝突により、数万人が避難を余儀なくされています。",
-                    date: new Date().toISOString().split('T')[0],
-                    category: "humanitarian",
-                    sources: 28,
-                    articleUrl: "https://www.bbc.com/news/topics/cnx753jenqxt"
-                },
-                {
-                    id: 6,
-                    title: "台湾海峡での緊張",
-                    location: "Taiwan",
-                    lat: 24.5,
-                    lng: 120.0,
-                    severity: "high",
-                    description: "軍事演習が実施されています。周辺国が警戒を強めています。",
-                    date: new Date().toISOString().split('T')[0],
-                    category: "conflict",
-                    sources: 67,
-                    articleUrl: "https://www.bbc.com/news/topics/c9wpm0zn92gt"
-                },
-                {
-                    id: 7,
-                    title: "ハイチで治安悪化",
-                    location: "Haiti",
-                    lat: 18.9712,
-                    lng: -72.2852,
-                    severity: "high",
-                    description: "ギャング間の暴力が激化。国際的な安定化努力が続いています。",
-                    date: new Date().toISOString().split('T')[0],
-                    category: "conflict",
-                    sources: 15,
-                    articleUrl: "https://www.cfr.org/global-conflict-tracker/conflict/political-instability-haiti"
-                },
-                {
-                    id: 8,
-                    title: "ミャンマー国境での衝突",
-                    location: "Myanmar",
-                    lat: 25.3867,
-                    lng: 97.3958,
-                    severity: "medium",
-                    description: "国境地帯での小規模な衝突が報告されています。",
-                    date: new Date().toISOString().split('T')[0],
-                    category: "conflict",
-                    sources: 15,
-                    articleUrl: "https://www.bbc.com/news/topics/c207p54m4e3t"
-                },
-                {
-                    id: 9,
-                    title: "マリでテロ攻撃",
-                    location: "Mali",
-                    lat: 17.5707,
-                    lng: -3.9962,
-                    severity: "high",
-                    description: "首都バマコでの攻撃。アルカイダ系組織の活動。",
-                    date: new Date().toISOString().split('T')[0],
-                    category: "conflict",
-                    sources: 9,
-                    articleUrl: "https://www.crisisgroup.org/crisiswatch"
-                },
-                {
-                    id: 10,
-                    title: "メキシコ国境での暴力",
-                    location: "Mexico",
-                    lat: 25.8,
-                    lng: -100.3,
-                    severity: "medium",
-                    description: "麻薬カルテルとの対立が激化しています。",
-                    date: new Date().toISOString().split('T')[0],
-                    category: "conflict",
-                    sources: 23,
-                    articleUrl: "https://www.cfr.org/global-conflict-tracker/conflict/criminal-violence-mexico"
-                },
-            {
-                   articleUrl: "https://www.bbc.com/news/topics/c207p54m4e3t"
-            }
-        ];
-    }
 
-    function ConflictMap() {
+        function ConflictMap() {
             const mapContainer = useRef(null);
             const map = useRef(null);
             const markers = useRef([]);
@@ -885,6 +934,7 @@
             const [loading, setLoading] = useState(false);
             const [categoryFilter, setCategoryFilter] = useState('all');
             const [severityFilter, setSeverityFilter] = useState('all');
+            const [legendCollapsed, setLegendCollapsed] = useState(true); // モバイルではデフォルトで閉じる
 
             // フィルタリングされたイベント
             const filteredEvents = events.filter(event => {
@@ -893,14 +943,31 @@
                 return categoryMatch && severityMatch;
             });
 
+            // 過去のイベントを蓄積（最大20件）
+            const eventHistory = useRef([]);
+            
             // イベントデータを取得
             const loadEvents = async () => {
                 setLoading(true);
                 console.log('Loading events...');
                 try {
-                    const data = await fetchGDELTEvents();
-                    console.log('Events loaded:', data.length, 'events');
-                    setEvents(data);
+                    const newData = await fetchGDELTEvents();
+                    console.log('New events loaded:', newData.length, 'events');
+                    
+                    // 新しいイベントを履歴に追加（重複を避ける）
+                    const existingIds = new Set(eventHistory.current.map(e => e.id));
+                    const uniqueNewEvents = newData.filter(e => !existingIds.has(e.id));
+                    
+                    // 履歴を更新（新しいイベントを先頭に追加）
+                    eventHistory.current = [...uniqueNewEvents, ...eventHistory.current];
+                    
+                    // 最大20件に制限
+                    if (eventHistory.current.length > 20) {
+                        eventHistory.current = eventHistory.current.slice(0, 20);
+                    }
+                    
+                    console.log(`📚 Total events in history: ${eventHistory.current.length}`);
+                    setEvents(eventHistory.current);
                 } catch (error) {
                     console.error('イベントの取得に失敗しました:', error);
                 } finally {
@@ -1032,54 +1099,52 @@
                 filteredEvents.forEach(event => {
                     console.log('Creating marker for:', event.title, 'at [lng:', event.lng, ', lat:', event.lat, ']');
                     
-                    // シンプルなマーカー要素を作成（デバッグ用）
+                    // マーカー要素を作成
                     const el = document.createElement('div');
                     
-                    // スタイルを直接設定
-                    const size = event.severity === 'critical' ? 40 : 30;
+                    // 適切なマーカーサイズ
+                    const isMobile = window.innerWidth < 768;
+                    const criticalSize = isMobile ? 32 : 28;
+                    const normalSize = isMobile ? 26 : 22;
+                    const size = event.severity === 'critical' ? criticalSize : normalSize;
                     
                     Object.assign(el.style, {
                         width: size + 'px',
                         height: size + 'px',
                         backgroundColor: severityColors[event.severity],
                         borderRadius: '50%',
-                        border: '3px solid white',
+                        border: '2px solid white',
                         cursor: 'pointer',
-                        boxShadow: `0 0 20px ${severityColors[event.severity]}`
+                        boxShadow: `0 0 15px ${severityColors[event.severity]}`,
+                        transition: 'transform 0.2s'
                     });
                     
                     console.log('Marker element created with size:', size);
 
-                    // ポップアップを作成
+                    // ポップアップを作成（レスポンシブ対応）
                     const popup = new mapboxgl.Popup({ 
-                        offset: 25,
+                        offset: 30,
                         closeButton: true,
                         closeOnClick: false,
-                        maxWidth: '400px'
+                        maxWidth: isMobile ? '280px' : '320px'
                     }).setHTML(`
                         <div class="popup-title">${event.title}</div>
                         <div class="popup-location">📍 ${event.location}</div>
                         <div class="popup-severity" style="background: ${severityColors[event.severity]}">
-                            深刻度: ${severityLabels[event.severity]}
+                            ${severityLabels[event.severity]}
                         </div>
                         <div class="popup-description">${event.description}</div>
-                        <div style="font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 8px;">
-                            カテゴリ: ${categories[event.category]} • ${event.sources}件のソース
+                        <div class="popup-meta">
+                            ${categories[event.category]} • ${event.sources}件
                         </div>
-                        <div class="popup-date">最終更新: ${event.date}</div>
+                        <div class="popup-date">${event.date}</div>
                         ${event.articleUrl ? `
                             <a href="${event.articleUrl}" 
                                target="_blank" 
                                rel="noopener noreferrer" 
-                               class="article-link"
-                               onclick="event.stopPropagation();"
-                               style="display: inline-block; margin-top: 12px; padding: 10px 16px; 
-                                      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                                      color: white; text-decoration: none; border-radius: 8px; 
-                                      font-size: 13px; font-weight: 600; transition: all 0.2s;
-                                      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-                                      cursor: pointer;">
-                                📰 記事を読む →
+                               class="article-link-button"
+                               onclick="event.stopPropagation();">
+                                📰 記事を読む
                             </a>
                         ` : ''}
                     `);
@@ -1090,27 +1155,6 @@
                             .setLngLat([event.lng, event.lat])
                             .setPopup(popup)
                             .addTo(map.current);
-
-                        // ポップアップが開いたときにリンクにイベントリスナーを追加
-                        marker.getPopup().on('open', () => {
-                            const link = document.querySelector('.article-link');
-                            if (link) {
-                                link.addEventListener('click', (e) => {
-                                    e.stopPropagation();
-                                    // リンクのデフォルト動作は維持（新しいタブで開く）
-                                });
-                                
-                                // ホバーエフェクト
-                                link.addEventListener('mouseenter', (e) => {
-                                    e.target.style.transform = 'translateY(-2px)';
-                                    e.target.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.5)';
-                                });
-                                link.addEventListener('mouseleave', (e) => {
-                                    e.target.style.transform = 'translateY(0)';
-                                    e.target.style.boxShadow = '0 2px 8px rgba(102, 126, 234, 0.3)';
-                                });
-                            }
-                        });
 
                         console.log('Marker successfully added');
                         markers.current.push(marker);
@@ -1175,23 +1219,39 @@
                             件のイベント
                         </div>
                     )}
-                    <div className="legend">
-                        <h3>深刻度</h3>
-                        <div className="legend-item">
-                            <div className="legend-color" style={{background: severityColors.critical}}></div>
-                            緊急 - 即座の対応が必要
-                        </div>
-                        <div className="legend-item">
-                            <div className="legend-color" style={{background: severityColors.high}}></div>
-                            高 - 深刻な状況
-                        </div>
-                        <div className="legend-item">
-                            <div className="legend-color" style={{background: severityColors.medium}}></div>
-                            中 - 注視が必要
-                        </div>
-                        <div className="legend-item">
-                            <div className="legend-color" style={{background: severityColors.low}}></div>
-                            低 - 安定傾向
+                    <div className={`legend ${legendCollapsed ? 'collapsed' : ''}`}>
+                        <button 
+                            className="legend-toggle"
+                            onClick={() => setLegendCollapsed(false)}
+                            aria-label="凡例を開く"
+                        >
+                            ℹ️
+                        </button>
+                        <div className="legend-content">
+                            <button 
+                                className="legend-close"
+                                onClick={() => setLegendCollapsed(true)}
+                                aria-label="凡例を閉じる"
+                            >
+                                ×
+                            </button>
+                            <h3>深刻度</h3>
+                            <div className="legend-item">
+                                <div className="legend-color" style={{background: severityColors.critical}}></div>
+                                緊急 - 即座の対応が必要
+                            </div>
+                            <div className="legend-item">
+                                <div className="legend-color" style={{background: severityColors.high}}></div>
+                                高 - 深刻な状況
+                            </div>
+                            <div className="legend-item">
+                                <div className="legend-color" style={{background: severityColors.medium}}></div>
+                                中 - 注視が必要
+                            </div>
+                            <div className="legend-item">
+                                <div className="legend-color" style={{background: severityColors.low}}></div>
+                                低 - 安定傾向
+                            </div>
                         </div>
                     </div>
                 </div>
