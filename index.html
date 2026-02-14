@@ -914,7 +914,11 @@
                 console.log(`🌍 Successfully processed ${events.length} conflict events from ${sources.length} sources`);
                 console.log(`📊 Coverage: Middle East, Asia, Africa, Americas, Europe, Oceania`);
                 
-                return events; // フォールバックなしで、取得したイベントのみ返す
+                if (events.length === 0) {
+                    console.warn('⚠️ No events matched criteria (conflict keywords + location found)');
+                }
+                
+                return events; // 取得したイベントを返す（履歴に追加される）
                 
             } catch (error) {
                 console.error('❌ Error fetching news:', error);
@@ -922,8 +926,6 @@
                 return []; // エラー時は空配列を返す
             }
         }
-        
-        // フォールバック用のダミーデータ
 
         function ConflictMap() {
             const mapContainer = useRef(null);
@@ -954,22 +956,44 @@
                     const newData = await fetchGDELTEvents();
                     console.log('New events loaded:', newData.length, 'events');
                     
-                    // 新しいイベントを履歴に追加（重複を避ける）
-                    const existingIds = new Set(eventHistory.current.map(e => e.id));
-                    const uniqueNewEvents = newData.filter(e => !existingIds.has(e.id));
+                    // 新しいイベントを履歴に追加（タイトル+URLで重複を避ける）
+                    const existingKeys = new Set(
+                        eventHistory.current.map(e => `${e.title}-${e.articleUrl}`)
+                    );
+                    const uniqueNewEvents = newData.filter(e => 
+                        !existingKeys.has(`${e.title}-${e.articleUrl}`)
+                    );
+                    
+                    console.log(`🆕 New unique events: ${uniqueNewEvents.length}`);
                     
                     // 履歴を更新（新しいイベントを先頭に追加）
                     eventHistory.current = [...uniqueNewEvents, ...eventHistory.current];
                     
                     // 最大20件に制限
                     if (eventHistory.current.length > 20) {
+                        const removed = eventHistory.current.length - 20;
                         eventHistory.current = eventHistory.current.slice(0, 20);
+                        console.log(`🗑️ Removed ${removed} old events`);
                     }
                     
+                    // IDを再採番（履歴全体で一意にする）
+                    eventHistory.current = eventHistory.current.map((event, index) => ({
+                        ...event,
+                        id: index + 1
+                    }));
+                    
                     console.log(`📚 Total events in history: ${eventHistory.current.length}`);
+                    console.log(`🗺️ Displaying all ${eventHistory.current.length} events on map`);
+                    
+                    // 履歴の全イベントを表示
                     setEvents(eventHistory.current);
                 } catch (error) {
                     console.error('イベントの取得に失敗しました:', error);
+                    // エラー時も既存の履歴は保持
+                    if (eventHistory.current.length > 0) {
+                        console.log(`📋 Keeping existing ${eventHistory.current.length} events`);
+                        setEvents(eventHistory.current);
+                    }
                 } finally {
                     setLoading(false);
                 }
